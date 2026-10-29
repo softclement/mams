@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1">
+
+<title>
+ManaCadeo Apartment
+</title>
+
+<link rel="stylesheet"
+href="style.css">
+
+</head>
+
+<body>
+
+<header>
+
+<h2>
+🏢 ManaCadeo Apartment
+</h2>
+
+<p>
+Apartment Management System
+</p>
+
+</header>
+
+<div class="card">
+
+<h3>Submit Payment</h3>
+
+<label>Flat</label>
+
+<select id="flat">
+<option>
+Loading...
+</option>
+</select>
+
+<label>Amount</label>
+
+<input
+type="number"
+id="amount"
+placeholder="Enter Amount">
+
+<label>Mode</label>
+
+<select id="mode">
+
+<option>UPI</option>
+
+<option>Cash</option>
+
+<option>Bank Transfer</option>
+
+<option>Cheque</option>
+
+</select>
+
+<label>Reference</label>
+
+<input
+type="text"
+id="reference"
+placeholder="Transaction ID">
+
+<label>Remarks</label>
+
+<input
+type="text"
+id="remarks"
+placeholder="Optional">
+
+<button
+onclick="submitPayment()">
+
+Submit Payment
+
+</button>
+
+</div>
+
+<div class="card">
+
+<h3>System Status</h3>
+
+<div id="status">
+Ready
+</div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+
+</html>

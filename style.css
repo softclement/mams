@@ -1,0 +1,85 @@
+body {
+
+font-family: Arial, sans-serif;
+
+background: #f5f6fa;
+
+padding: 10px;
+
+margin: 0;
+
+}
+
+header {
+
+background: #1565c0;
+
+color: white;
+
+padding: 20px;
+
+border-radius: 10px;
+
+text-align: center;
+
+}
+
+.card {
+
+background: white;
+
+padding: 15px;
+
+margin-top: 15px;
+
+border-radius: 10px;
+
+box-shadow: 0 2px 5px #ccc;
+
+}
+
+input,
+select {
+
+width: 100%;
+
+padding: 10px;
+
+margin-top: 5px;
+margin-bottom: 10px;
+
+box-sizing: border-box;
+
+}
+
+button {
+
+width: 100%;
+
+background: #1565c0;
+
+color: white;
+
+border: none;
+
+padding: 12px;
+
+border-radius: 6px;
+
+font-size: 16px;
+
+cursor: pointer;
+
+}
+
+button:hover {
+
+background: #0d47a1;
+
+}
+
+label {
+
+font-weight: bold;
+
+}
