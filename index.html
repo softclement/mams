@@ -13,51 +13,104 @@
   <p>Apartment Management System</p>
 </header>
 
-<div class="card">
-  <h3>Submit Payment</h3>
+<main>
 
-  <label>Flat</label>
-  <select id="flat" onchange="loadBalance()">
-    <option>Loading...</option>
-  </select>
+  <!-- HOME / DASHBOARD -->
+  <section id="view-dashboard" class="view">
+    <div class="card">
+      <h3>Dashboard <span id="dashMonth" class="muted"></span></h3>
+      <div id="dashTiles">Loading...</div>
+    </div>
+  </section>
 
-  <div id="summary" class="summary">Select a flat to see its balance</div>
+  <!-- SUBMIT PAYMENT -->
+  <section id="view-pay" class="view">
+    <div class="card">
+      <h3>Submit Payment</h3>
 
-  <label>Payment Date</label>
-  <input type="date" id="paymentDate">
+      <label>Flat</label>
+      <select id="flat" onchange="loadBalance()"><option>Loading...</option></select>
 
-  <label>Amount</label>
-  <input type="number" id="amount" placeholder="Enter Amount" oninput="updatePreview()">
+      <div id="summary" class="summary">Select a flat to see its balance</div>
 
-  <div class="quick">
-    <button type="button" onclick="fillMonths(1)">1 month</button>
-    <button type="button" onclick="fillMonths(3)">3 months</button>
-    <button type="button" onclick="fillDues()">Clear dues</button>
-  </div>
-  <div id="preview" class="preview"></div>
+      <label>Payment Date</label>
+      <input type="date" id="paymentDate">
 
-  <label>Mode</label>
-  <select id="mode">
-    <option>UPI</option>
-    <option>Cash</option>
-    <option>Bank Transfer</option>
-    <option>Cheque</option>
-  </select>
+      <label>Amount</label>
+      <input type="number" id="amount" placeholder="Enter Amount" oninput="updatePreview()">
+      <div id="preview" class="preview"></div>
 
-  <label>Reference</label>
-  <input type="text" id="reference" placeholder="UPI / Transaction ID">
+      <label>Mode</label>
+      <select id="mode">
+        <option>UPI</option>
+        <option>Cash</option>
+        <option>Bank Transfer</option>
+        <option>Cheque</option>
+      </select>
 
-  <label>Remarks</label>
-  <input type="text" id="remarks" placeholder="Optional">
+      <label>Reference</label>
+      <input type="text" id="reference" placeholder="UPI / Transaction ID">
 
-  <button id="submitBtn" type="button" onclick="submitPayment()">Submit Payment</button>
-</div>
+      <label>Remarks</label>
+      <input type="text" id="remarks" placeholder="Optional">
 
-<div class="card">
-  <h3>System Status</h3>
-  <div id="status">Ready</div>
-</div>
+      <button id="submitBtn" type="button" onclick="submitPayment()">Submit Payment</button>
+    </div>
+    <div class="card">
+      <h3>System Status</h3>
+      <div id="status">Ready</div>
+    </div>
+  </section>
 
-<script src="app.js?v=2"></script>
+  <!-- MY DUES / FLAT STATEMENT -->
+  <section id="view-statement" class="view">
+    <div class="card">
+      <h3>My Dues &amp; Statement</h3>
+      <label>Flat</label>
+      <select id="stmtFlat" onchange="loadStatement()"><option>Loading...</option></select>
+      <div id="stmt" class="muted">Select a flat</div>
+    </div>
+  </section>
+
+  <!-- EXPENSES -->
+  <section id="view-expenses" class="view">
+    <div class="card">
+      <h3>Expenses</h3>
+      <div class="row2">
+        <div>
+          <label>Year</label>
+          <select id="expYear" onchange="loadExpenses()"><option value="all">All</option></select>
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="expCat" onchange="loadExpenses()"><option value="all">All</option></select>
+        </div>
+      </div>
+      <div id="expBody" class="muted">Loading...</div>
+    </div>
+  </section>
+
+  <!-- DEFAULTERS (committee) -->
+  <section id="view-defaulters" class="view">
+    <div class="card">
+      <h3>Defaulters (Committee)</h3>
+      <label>Committee PIN</label>
+      <input type="password" id="pin" placeholder="Enter PIN" autocomplete="off">
+      <button type="button" onclick="loadDefaulters()">Show Report</button>
+      <div id="defBody" class="muted"></div>
+    </div>
+  </section>
+
+</main>
+
+<nav id="nav">
+  <button type="button" data-view="dashboard" onclick="show('dashboard')"><span>📊</span>Home</button>
+  <button type="button" data-view="pay" onclick="show('pay')"><span>💳</span>Pay</button>
+  <button type="button" data-view="statement" onclick="show('statement')"><span>📄</span>My Dues</button>
+  <button type="button" data-view="expenses" onclick="show('expenses')"><span>🧾</span>Expenses</button>
+  <button type="button" data-view="defaulters" onclick="show('defaulters')"><span>⚠️</span>Dues List</button>
+</nav>
+
+<script src="app.js?v=3"></script>
 </body>
 </html>
