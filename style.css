@@ -1,85 +1,95 @@
 body {
-
-font-family: Arial, sans-serif;
-
-background: #f5f6fa;
-
-padding: 10px;
-
-margin: 0;
-
+  font-family: Arial, sans-serif;
+  background: #f5f6fa;
+  padding: 10px;
+  margin: 0;
 }
 
 header {
-
-background: #1565c0;
-
-color: white;
-
-padding: 20px;
-
-border-radius: 10px;
-
-text-align: center;
-
+  background: #1565c0;
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
 }
 
 .card {
-
-background: white;
-
-padding: 15px;
-
-margin-top: 15px;
-
-border-radius: 10px;
-
-box-shadow: 0 2px 5px #ccc;
-
+  background: white;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px #ccc;
 }
 
 input,
 select {
-
-width: 100%;
-
-padding: 10px;
-
-margin-top: 5px;
-margin-bottom: 10px;
-
-box-sizing: border-box;
-
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
 }
 
 button {
-
-width: 100%;
-
-background: #1565c0;
-
-color: white;
-
-border: none;
-
-padding: 12px;
-
-border-radius: 6px;
-
-font-size: 16px;
-
-cursor: pointer;
-
+  width: 100%;
+  background: #1565c0;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
 }
 
 button:hover {
+  background: #0d47a1;
+}
 
-background: #0d47a1;
-
+button:disabled {
+  background: #90a4ae;
+  cursor: not-allowed;
 }
 
 label {
+  font-weight: bold;
+}
 
-font-weight: bold;
+/* balance summary for the selected flat */
+.summary {
+  background: #eef3fb;
+  border-left: 4px solid #1565c0;
+  border-radius: 6px;
+  padding: 10px;
+  margin: 5px 0 12px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
 
+.due { color: #c62828; font-weight: bold; }
+.adv { color: #2e7d32; font-weight: bold; }
+
+/* quick-fill amount buttons */
+.quick {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.quick button {
+  flex: 1;
+  width: auto;
+  background: #e3ecf9;
+  color: #1565c0;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.quick button:hover {
+  background: #cfdcf2;
+}
+
+.preview {
+  min-height: 20px;
+  margin-bottom: 10px;
+  font-size: 14px;
 }
