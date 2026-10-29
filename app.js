@@ -42,40 +42,55 @@ dropdown.appendChild(option);
 
 async function submitPayment() {
 
-const payload = {
+  const payload = {
 
-flat:
-document.getElementById("flat").value,
+    action: "payment",
 
-amount:
-document.getElementById("amount").value,
+    flat:
+      document.getElementById("flat").value,
 
-mode:
-document.getElementById("mode").value,
+    amount:
+      document.getElementById("amount").value,
 
-reference:
-document.getElementById("reference").value,
+    mode:
+      document.getElementById("mode").value,
 
-remarks:
-document.getElementById("remarks").value
+    reference:
+      document.getElementById("reference").value,
 
-};
+    remarks:
+      document.getElementById("remarks").value
 
-await fetch(API_URL, {
+  };
 
-method: "POST",
+  const response =
+    await fetch(API_URL, {
 
-body: JSON.stringify(payload)
+      method: "POST",
 
-});
+      body: JSON.stringify(payload)
 
-document.getElementById(
-"status"
-).innerHTML =
-"✅ Payment Submitted";
+    });
 
-alert(
-"Payment Saved Successfully"
-);
+  const result =
+    await response.json();
+
+  console.log(result);
+
+  if(result.status === "success") {
+
+    alert("Payment Saved Successfully");
+
+    document.getElementById("status")
+      .innerHTML =
+      "✅ Payment Saved";
+
+  } else {
+
+    alert(
+      "Error : " + result.message
+    );
+
+  }
 
 }
