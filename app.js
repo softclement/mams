@@ -70,7 +70,23 @@ function route() {
 
 window.addEventListener("hashchange", route);
 
+const NEED_API = 4;
+
+async function checkBackend() {
+  try {
+    const d = await api({});
+    if (!d.version || d.version < NEED_API) throw new Error("old");
+  } catch (e) {
+    const b = document.createElement("div");
+    b.className = "card";
+    b.style.background = "#fff3e0";
+    b.innerHTML = "⚠️ The Google Apps Script backend is out of date. Paste the latest <b>Code.gs</b> there and deploy a <b>New version</b>, then run <b>setupSheets()</b>.";
+    document.querySelector("header").after(b);
+  }
+}
+
 window.onload = async function () {
+  checkBackend();
   $("paymentDate").value = todayStr();
   await loadFlats();
   route();
@@ -250,8 +266,8 @@ async function loadStatement() {
       "</div>";
 
     html += '<div class="list-title">Payments</div>';
-    html += s.payments.length
-      ? s.payments.map((p) =>
+    html += (s.payments || []).length
+      ? (s.payments || []).map((p) =>
           item(
             esc(p.date) + (p.status !== "Verified" ? ' <span class="tag">' + esc(p.status) + "</span>" : ""),
             esc([p.mode, p.reference, p.remarks].filter(Boolean).join(" · ")),
@@ -261,8 +277,8 @@ async function loadStatement() {
       : '<p class="muted">No payments yet</p>';
 
     html += '<div class="list-title">Monthly charges</div>';
-    html += s.charges.length
-      ? s.charges.map((c) => item(esc(c.month), "", rupee(c.amount))).join("")
+    html += (s.charges || []).length
+      ? (s.charges || []).map((c) => item(esc(c.month), "", rupee(c.amount))).join("")
       : '<p class="muted">No charges raised yet</p>';
 
     box.innerHTML = html;
