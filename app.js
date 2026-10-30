@@ -1,5 +1,5 @@
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbxGgtUd2WuVk1P-TbGhRLkExKcH3aDd6CTdyIttJzSgE-EJNmWPruwfjStUCnjYbuY4/exec";
+  "https://script.google.com/macros/s/AKfycbyUfTFLmLWJDvpfjwCXdkD5JiJbNDHmh5vQBPnBfz9nOp9EsCerTDqn2nqfw4LL7xTU/exec";
 
 const VIEWS = ["dashboard", "pay", "statement", "expenses", "defaulters", "lead"];
 let current = null; // balance of the flat selected on the Pay screen
