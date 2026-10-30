@@ -115,3 +115,10 @@ nav button.active { color: #1565c0; font-weight: bold; background: #eef3fb; }
 
 .row2 { display: flex; gap: 10px; }
 .row2 > div { flex: 1; }
+
+/* lead screen */
+.mini { width: auto; padding: 6px 10px; font-size: 13px; margin: 4px 4px 0 0; }
+.mini.no { background: #c62828; }
+.mini.alt { background: #e3ecf9; color: #1565c0; }
+.box { border: 1px solid #e0e6ef; border-radius: 8px; padding: 10px; margin: 8px 0; }
+.neg { color: #c62828; font-weight: bold; }

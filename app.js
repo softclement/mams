@@ -1,7 +1,7 @@
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbyUfTFLmLWJDvpfjwCXdkD5JiJbNDHmh5vQBPnBfz9nOp9EsCerTDqn2nqfw4LL7xTU/exec";
+  "https://script.google.com/macros/s/AKfycbxGgtUd2WuVk1P-TbGhRLkExKcH3aDd6CTdyIttJzSgE-EJNmWPruwfjStUCnjYbuY4/exec";
 
-const VIEWS = ["dashboard", "pay", "statement", "expenses", "defaulters"];
+const VIEWS = ["dashboard", "pay", "statement", "expenses", "defaulters", "lead"];
 let current = null; // balance of the flat selected on the Pay screen
 
 // ---------- helpers ----------
@@ -121,7 +121,7 @@ async function loadDashboard() {
       tile("Expenses This Month", rupee(d.expensesThisMonth), "", rupee(d.expensesTotal) + " in total") +
       tile("Net Funds*", (d.netFunds < 0 ? "-" : "") + rupee(d.netFunds), d.netFunds < 0 ? "red" : "", "received − expenses") +
       "</div>" +
-      '<p class="muted">*Does not include any opening bank balance.</p>';
+      '<p class="muted">*Does not include any opening bank balance.</p>' + groupsHtml(d);
   } catch (err) {
     box.innerHTML = "❌ " + esc(err.message);
   }
@@ -136,6 +136,7 @@ async function loadBalance() {
   $("summary").innerHTML = "Loading balance...";
   try {
     current = await api({ action: "balance", flat: flat });
+    fillPayFor();
     renderSummary();
     updatePreview();
   } catch (err) {
@@ -152,7 +153,9 @@ function renderSummary() {
   $("summary").innerHTML =
     "Monthly amount: <b>" + rupee(current.monthly) + "</b><br>" +
     "Status: " + statusLine(current.outstanding, current.monthly) + "<br>" +
-    "Last payment: " + last;
+    "Last payment: " + last +
+    (current.group ? "<br>Your group: <b>" + esc(current.group.group) + "</b> · pay to <b>" + esc(current.group.payTo + " " + current.group.payToOwner) + "</b>" : "") +
+    (current.pendingAmount ? "<br>Awaiting lead confirmation: " + rupee(current.pendingAmount) : "");
 }
 
 function updatePreview() {
@@ -175,6 +178,9 @@ async function submitPayment(force) {
     reference: $("reference").value,
     remarks: $("remarks").value,
     force: force === true,
+    purpose: payTarget().purpose,
+    group: payTarget().group,
+    payTo: payTarget().payTo,
   };
 
   if (!payload.amount || Number(payload.amount) <= 0) {
@@ -335,5 +341,158 @@ async function loadDefaulters() {
     box.innerHTML = html;
   } catch (err) {
     box.innerHTML = "❌ " + esc(err.message);
+  }
+}
+
+// ---------- pay for: group (monthly), special collection, or extra contribution ----------
+function fillPayFor() {
+  const sel = $("payFor"), ex = $("extraGroup");
+  sel.innerHTML = "";
+  const add = (v, t) => { const o = document.createElement("option"); o.value = v; o.text = t; sel.appendChild(o); };
+  if (current.group) add("M|" + current.group.group + "|" + current.group.payTo, "Monthly – " + current.group.group + " (expected " + rupee(current.group.expected) + ")");
+  else add("M||", "General maintenance");
+  (current.specials || []).forEach((s) => {
+    if (s.remaining > 0) add("S|" + s.id + "|" + s.lead, "Special – " + s.description + " (" + rupee(s.remaining) + " due)");
+  });
+  add("X||", "Extra contribution to a group…");
+  ex.innerHTML = "";
+  (current.groups || []).forEach((g) => {
+    const o = document.createElement("option");
+    o.value = g.group + "|" + g.payTo;
+    o.text = g.group;
+    ex.appendChild(o);
+  });
+  onPayFor();
+}
+
+function payTarget() {
+  const v = ($("payFor").value || "M||").split("|");
+  if (v[0] === "S") return { purpose: v[1], group: "", payTo: v[2] };
+  if (v[0] === "X") { const g = ($("extraGroup").value || "|").split("|"); return { purpose: "Maintenance", group: g[0], payTo: g[1] }; }
+  return { purpose: "Maintenance", group: v[1] || "", payTo: v[2] || "" };
+}
+
+function onPayFor() {
+  const isX = ($("payFor").value || "").charAt(0) === "X";
+  $("extraGroup").style.display = isX ? "block" : "none";
+  const t = payTarget();
+  let who = t.payTo;
+  if (current && current.specials) { const s = current.specials.filter((x) => x.id === t.purpose)[0]; if (s) who = s.lead + " " + s.leadOwner; }
+  if (current && current.group && t.payTo === current.group.payTo) who = t.payTo + " " + current.group.payToOwner;
+  if (current && current.groups) { const g = current.groups.filter((x) => x.group === t.group && x.payTo === t.payTo)[0]; if (g && g.payToOwner) who = t.payTo + " " + g.payToOwner; }
+  $("payTo").innerHTML = who ? "Pay to: <b>" + esc(who) + "</b> · it counts after the lead confirms receipt" : "";
+}
+
+// ---------- home: group funds and special collections ----------
+function groupsHtml(d) {
+  let h = '<div class="list-title">Group funds</div>';
+  h += (d.groups || []).map((g) =>
+    item("<b>" + esc(g.group) + "</b> · " + g.flats + " flats",
+      "Lead " + esc(g.leads.join("/")) + " · budget " + rupee(g.budget) + " · collected " + rupee(g.collectedMonth) + " · spent " + rupee(g.spentMonth) +
+      (g.pending ? " · unconfirmed " + rupee(g.pending) : ""),
+      (g.balance < 0 ? '<span class="neg">−' : "<span>") + rupee(g.balance) + "</span>")).join("");
+  if ((d.specials || []).length) {
+    h += '<div class="list-title">Special collections</div>';
+    h += d.specials.map((s) =>
+      item("<b>" + esc(s.description) + "</b>", esc(s.id) + " · " + rupee(s.share) + " per flat · " + s.unpaid.length + " flats pending · lead " + esc(s.lead),
+        rupee(s.collected) + " / " + rupee(s.total))).join("");
+  }
+  return h;
+}
+
+// ---------- collection lead ----------
+let lead = null;
+async function leadCall(extra) {
+  const d = await post(Object.assign({ leadFlat: lead.flat, pin: lead.pin }, extra));
+  if (d.status === "error") throw new Error(d.message);
+  return d;
+}
+
+async function leadLogin() {
+  lead = { flat: $("leadFlat").value.trim().toUpperCase(), pin: $("leadPin").value };
+  $("leadBody").innerHTML = "Loading...";
+  try {
+    renderLead(await leadCall({ action: "lead" }));
+    $("leadLogin").style.display = "none";
+  } catch (err) {
+    lead = null;
+    $("leadBody").innerHTML = "❌ " + esc(err.message);
+  }
+}
+
+function renderLead(d) {
+  window.leadData = d;
+  let h = '<p class="muted">Signed in: <b>' + esc(d.lead) + " " + esc(d.owner) + "</b></p>";
+
+  h += '<div class="list-title">Payments to confirm (' + d.pending.length + ")</div>";
+  h += d.pending.length
+    ? d.pending.map((p) =>
+        '<div class="box">' + item("<b>" + esc(p.flat) + "</b> " + esc(p.owner),
+          esc(p.date) + " · " + esc(p.mode) + (p.reference ? " · " + esc(p.reference) : "") + " · " + esc(p.group || p.purpose), rupee(p.amount)) +
+        '<button class="mini" onclick="leadConfirm(\'' + p.id + "','Verified')\">✔ Received</button>" +
+        '<button class="mini no" onclick="leadConfirm(\'' + p.id + "','Rejected')\">✖ Not received</button></div>").join("")
+    : '<p class="muted">Nothing waiting</p>';
+
+  h += '<div class="list-title">My groups</div>';
+  h += d.groups.map((g) =>
+    '<div class="box">' + item("<b>" + esc(g.group) + "</b>",
+      "Budget " + rupee(g.budget) + " · collected this month " + rupee(g.collectedMonth) + " · spent " + rupee(g.spentMonth),
+      (g.balance < 0 ? '<span class="neg">−' : "<span>") + rupee(g.balance) + "</span>") +
+    (g.balance < 0 ? '<p class="neg">Bills exceed collection by ' + rupee(g.balance) + " – ask other flats to contribute, or you have advanced it.</p>" : "") +
+    '<button class="mini" onclick="leadForm(\'bill\',\'' + esc(g.group) + "')\">Record bill paid</button></div>").join("") || '<p class="muted">No groups</p>';
+
+  h += '<div class="list-title">Special collections I lead</div>';
+  h += d.specials.map((s) =>
+    '<div class="box">' + item("<b>" + esc(s.description) + "</b>",
+      esc(s.id) + " · " + rupee(s.share) + " per flat · pending: " + (s.unpaid.map((u) => u.flat).join(", ") || "none"),
+      rupee(s.collected) + " / " + rupee(s.total)) +
+    "<div class=\"muted\">Spent " + rupee(s.spent) + " · in hand " + rupee(s.balance) + "</div>" +
+    '<button class="mini" onclick="leadForm(\'sbill\',\'' + esc(s.id) + "')\">Record vendor payment</button></div>").join("");
+  h += '<button class="mini alt" onclick="leadForm(\'special\')">+ New special collection</button>';
+  $("leadBody").innerHTML = h;
+}
+
+async function leadConfirm(id, decision) {
+  try { renderLead(await leadCall({ action: "confirm", ids: [id], decision: decision })); }
+  catch (err) { alert("Error : " + err.message); }
+}
+
+function leadForm(kind, key) {
+  const d = window.leadData, f = $("leadForm");
+  const inp = (id, label, type, ph) => "<label>" + label + '</label><input id="lf_' + id + '" type="' + (type || "text") + '" placeholder="' + (ph || "") + '">';
+  let h = '<div class="box"><b>' + (kind === "special" ? "New special collection" : "Record bill / vendor payment " + esc(key)) + "</b>";
+  if (kind === "special") {
+    h += inp("description", "Description", "text", "e.g. Lift AMC") + inp("total", "Total amount", "number") + inp("due", "Due date", "date");
+    h += '<p class="muted">Split equally among all paying flats.</p>';
+  } else {
+    h += inp("date", "Bill / payment date", "date") + inp("amount", "Amount", "number");
+    h += "<label>Category</label><select id=\"lf_category\">" + d.categories.map((c) => "<option>" + esc(c) + "</option>").join("") + "<option>Special</option></select>";
+    h += inp("vendor", "Vendor", "text") + (kind === "bill" ? inp("period", "Bill month", "month") : "") + inp("remarks", "Reference / remarks", "text");
+  }
+  h += '<button class="mini" onclick="leadSave(\'' + kind + "','" + (key || "") + "')\">Save</button>" +
+       '<button class="mini alt" onclick="$(\'leadForm\').innerHTML=\'\'">Cancel</button></div>';
+  f.innerHTML = h;
+  if ($("lf_date")) $("lf_date").value = todayStr();
+  f.scrollIntoView();
+}
+
+async function leadSave(kind, key) {
+  const v = (id) => ($("lf_" + id) ? $("lf_" + id).value : "");
+  try {
+    let r;
+    if (kind === "special") {
+      r = await leadCall({ action: "special_new", description: v("description"), total: v("total"), dueDate: v("due") });
+      alert("Created " + r.created + ": " + rupee(r.share) + " per flat × " + r.flats + " flats");
+    } else {
+      r = await leadCall({
+        action: "bill", group: kind === "bill" ? key : "", specialId: kind === "sbill" ? key : "", date: v("date"), amount: v("amount"),
+        category: v("category"), vendor: v("vendor"), billPeriod: v("period"), remarks: v("remarks"),
+      });
+      alert("Bill recorded");
+    }
+    $("leadForm").innerHTML = "";
+    renderLead(r);
+  } catch (err) {
+    alert("Error : " + err.message);
   }
 }

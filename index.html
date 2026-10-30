@@ -33,6 +33,11 @@
 
       <div id="summary" class="summary">Select a flat to see its balance</div>
 
+      <label>Pay for</label>
+      <select id="payFor" onchange="onPayFor()"></select>
+      <select id="extraGroup" onchange="onPayFor()" style="display:none"></select>
+      <div id="payTo" class="preview"></div>
+
       <label>Payment Date</label>
       <input type="date" id="paymentDate">
 
@@ -101,6 +106,22 @@
     </div>
   </section>
 
+  <!-- COLLECTION LEAD -->
+  <section id="view-lead" class="view">
+    <div class="card">
+      <h3>Collection Lead</h3>
+      <div id="leadLogin">
+        <label>Your flat</label>
+        <input type="text" id="leadFlat" placeholder="e.g. G1 (or COMMITTEE)" autocapitalize="characters">
+        <label>PIN</label>
+        <input type="password" id="leadPin" placeholder="Lead PIN" autocomplete="off">
+        <button type="button" onclick="leadLogin()">Open</button>
+      </div>
+      <div id="leadBody"></div>
+      <div id="leadForm"></div>
+    </div>
+  </section>
+
 </main>
 
 <nav id="nav">
@@ -109,8 +130,9 @@
   <button type="button" data-view="statement" onclick="show('statement')"><span>📄</span>My Dues</button>
   <button type="button" data-view="expenses" onclick="show('expenses')"><span>🧾</span>Expenses</button>
   <button type="button" data-view="defaulters" onclick="show('defaulters')"><span>⚠️</span>Dues List</button>
+  <button type="button" data-view="lead" onclick="show('lead')"><span>🤝</span>Lead</button>
 </nav>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
