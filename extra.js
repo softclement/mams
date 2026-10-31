@@ -166,7 +166,13 @@ function admEdit(row) {
   let h = '<div class="box"><b>' + (row ? "Edit" : "Add") + "</b>";
   M.cols.forEach((c, i) => {
     const v = cur[i] == null ? "" : cur[i], id = "mf_" + i;
-    if (c.t === "yn") h += "<label>" + esc(c.n) + '</label><select id="' + id + '"><option' + (v === "N" ? "" : " selected") + ">Y</option><option" + (v === "N" ? " selected" : "") + ">N</option></select>";
+    if (c.t === "group" || c.t === "lead") {
+      const opts = c.t === "group" ? M.options.groups.map((g) => [g, g])
+        : M.options.leads.map((l) => [l.flat, l.flat + " – " + l.owner]).concat([["Vendor direct", "Vendor direct (agency)"]]);
+      if (v && !opts.some((o) => o[0] === v)) opts.push([v, v]);
+      h += "<label>" + esc(c.n) + '</label><select id="' + id + '"><option value="">Select…</option>' +
+        opts.map((o) => '<option value="' + esc(o[0]) + '"' + (o[0] === v ? " selected" : "") + ">" + esc(o[1]) + "</option>").join("") + "</select>";
+    } else if (c.t === "yn") h += "<label>" + esc(c.n) + '</label><select id="' + id + '"><option' + (v === "N" ? "" : " selected") + ">Y</option><option" + (v === "N" ? " selected" : "") + ">N</option></select>";
     else h += inp(id, esc(c.n), c.t === "number" ? "number" : c.t === "date" ? "date" : "text", v);
   });
   h += '<button class="mini" onclick="admSave(' + row + ')">Save</button><button class="mini alt" onclick="$(\'admForm\').innerHTML=\'\'">Cancel</button></div>';

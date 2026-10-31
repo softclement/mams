@@ -71,7 +71,7 @@ function route() {
 
 window.addEventListener("hashchange", route);
 
-const NEED_API = 5;
+const NEED_API = 6;
 
 async function checkBackend() {
   try {
