@@ -11,11 +11,11 @@
 <header>
   <h2>🏢 ManaCadeo Apartment</h2>
   <p>Apartment Management System</p>
+  <div id="who" class="who" onclick="show('account')">👤 Log in</div>
 </header>
 
 <main>
 
-  <!-- HOME / DASHBOARD -->
   <section id="view-dashboard" class="view">
     <div class="card">
       <h3>Dashboard <span id="dashMonth" class="muted"></span></h3>
@@ -23,9 +23,9 @@
     </div>
   </section>
 
-  <!-- SUBMIT PAYMENT -->
   <section id="view-pay" class="view">
-    <div class="card">
+    <div id="payGate" class="card" style="display:none"></div>
+    <div id="payCard" class="card">
       <h3>Submit Payment</h3>
 
       <label>Flat</label>
@@ -67,46 +67,25 @@
     </div>
   </section>
 
-  <!-- MY DUES / FLAT STATEMENT -->
-  <section id="view-statement" class="view">
+  <section id="view-reports" class="view">
     <div class="card">
-      <h3>My Dues &amp; Statement</h3>
-      <label>Flat</label>
-      <select id="stmtFlat" onchange="loadStatement()"><option>Loading...</option></select>
-      <div id="stmt" class="muted">Select a flat</div>
-    </div>
-  </section>
-
-  <!-- EXPENSES -->
-  <section id="view-expenses" class="view">
-    <div class="card">
-      <h3>Expenses</h3>
-      <div class="row2">
-        <div>
-          <label>Year</label>
-          <select id="expYear" onchange="loadExpenses()"><option value="all">All</option></select>
-        </div>
-        <div>
-          <label>Category</label>
-          <select id="expCat" onchange="loadExpenses()"><option value="all">All</option></select>
-        </div>
+      <h3>Reports</h3>
+      <div id="repBody"></div>
+      <div id="repBox">
+        <select id="repType" onchange="repCtl()">
+          <option value="dues">All flats dues</option>
+          <option value="sel">Selected flats dues</option>
+          <option value="ledger">Flat ledger</option>
+          <option value="coll">Monthly collection ledger</option>
+          <option value="exp">Monthly expense ledger</option>
+        </select>
+        <div id="repCtl"></div>
+        <button type="button" onclick="repShow()">Show</button>
+        <div id="repOut"></div>
       </div>
-      <div id="expBody" class="muted">Loading...</div>
     </div>
   </section>
 
-  <!-- DEFAULTERS (committee) -->
-  <section id="view-defaulters" class="view">
-    <div class="card">
-      <h3>Defaulters (Committee)</h3>
-      <label>Committee PIN</label>
-      <input type="password" id="pin" placeholder="Enter PIN" autocomplete="off">
-      <button type="button" onclick="loadDefaulters()">Show Report</button>
-      <div id="defBody" class="muted"></div>
-    </div>
-  </section>
-
-  <!-- COLLECTION LEAD -->
   <section id="view-lead" class="view">
     <div class="card">
       <h3>Collection Lead</h3>
@@ -122,17 +101,32 @@
     </div>
   </section>
 
+  <section id="view-admin" class="view">
+    <div class="card">
+      <h3>Admin (Committee)</h3>
+      <div id="admBody"></div>
+      <div id="admOut"></div>
+    </div>
+  </section>
+
+  <section id="view-account" class="view">
+    <div class="card">
+      <h3>My Account</h3>
+      <div id="accBody"></div>
+    </div>
+  </section>
+
 </main>
 
 <nav id="nav">
   <button type="button" data-view="dashboard" onclick="show('dashboard')"><span>📊</span>Home</button>
   <button type="button" data-view="pay" onclick="show('pay')"><span>💳</span>Pay</button>
-  <button type="button" data-view="statement" onclick="show('statement')"><span>📄</span>My Dues</button>
-  <button type="button" data-view="expenses" onclick="show('expenses')"><span>🧾</span>Expenses</button>
-  <button type="button" data-view="defaulters" onclick="show('defaulters')"><span>⚠️</span>Dues List</button>
+  <button type="button" data-view="reports" onclick="show('reports')"><span>📑</span>Reports</button>
   <button type="button" data-view="lead" onclick="show('lead')"><span>🤝</span>Lead</button>
+  <button type="button" data-view="admin" onclick="show('admin')"><span>⚙️</span>Admin</button>
 </nav>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
+<script src="extra.js?v=5"></script>
 </body>
 </html>

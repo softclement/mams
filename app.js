@@ -1,7 +1,7 @@
 const API_URL =
   "https://script.google.com/macros/s/AKfycbyUfTFLmLWJDvpfjwCXdkD5JiJbNDHmh5vQBPnBfz9nOp9EsCerTDqn2nqfw4LL7xTU/exec";
 
-const VIEWS = ["dashboard", "pay", "statement", "expenses", "defaulters", "lead"];
+const VIEWS = ["dashboard", "pay", "reports", "lead", "admin", "account"];
 let current = null; // balance of the flat selected on the Pay screen
 
 // ---------- helpers ----------
@@ -63,14 +63,15 @@ function route() {
   window.scrollTo(0, 0);
 
   if (view === "dashboard") loadDashboard();
-  if (view === "pay") loadBalance();
-  if (view === "statement") loadStatement();
-  if (view === "expenses") loadExpenses();
+  if (view === "pay") payInit();
+  if (view === "reports") repInit();
+  if (view === "admin") admInit();
+  if (view === "account") renderAccount();
 }
 
 window.addEventListener("hashchange", route);
 
-const NEED_API = 4;
+const NEED_API = 5;
 
 async function checkBackend() {
   try {
@@ -87,6 +88,7 @@ async function checkBackend() {
 
 window.onload = async function () {
   checkBackend();
+  restoreLogin();
   $("paymentDate").value = todayStr();
   await loadFlats();
   route();
@@ -94,9 +96,10 @@ window.onload = async function () {
 
 // ---------- flats (shared by Pay and My Dues) ----------
 async function loadFlats() {
-  const selects = [$("flat"), $("stmtFlat")];
+  const selects = [$("flat")];
   try {
     const data = await api({ action: "flats" });
+    window.FLATS = data;
     selects.forEach((sel) => {
       sel.innerHTML = "";
       data.forEach((row) => {
@@ -187,7 +190,8 @@ async function submitPayment(force) {
   const btn = $("submitBtn");
   const payload = {
     action: "payment",
-    flat: $("flat").value,
+    pin: me ? me.pin : "",
+    flat: me ? me.flat : $("flat").value,
     paymentDate: $("paymentDate").value,
     amount: $("amount").value,
     mode: $("mode").value,
