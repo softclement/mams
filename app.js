@@ -71,7 +71,7 @@ function route() {
 
 window.addEventListener("hashchange", route);
 
-const NEED_API = 6;
+const NEED_API = 7;
 
 async function checkBackend() {
   try {
@@ -170,11 +170,13 @@ function renderSummary() {
     ? current.lastPayment.date + " (" + rupee(current.lastPayment.amount) + ")"
     : "none yet";
   $("summary").innerHTML =
+    '<div class="flatname">' + esc(current.flat) + " " + esc(current.owner) + "</div>" +
     "Monthly amount: <b>" + rupee(current.monthly) + "</b><br>" +
     "Status: " + statusLine(current.outstanding, current.monthly) + "<br>" +
     "Last payment: " + last +
     (current.group ? "<br>Your group: <b>" + esc(current.group.group) + "</b> · pay to <b>" + esc(current.group.payTo + " " + current.group.payToOwner) + "</b>" : "") +
-    (current.pendingAmount ? "<br>Awaiting lead confirmation: " + rupee(current.pendingAmount) : "");
+    (current.pendingAmount ? '<br><span class="blink">⏳ Awaiting lead confirmation: ' + rupee(current.pendingAmount) + "</span>" : "");
+  renderPending();
 }
 
 function updatePreview() {
@@ -198,6 +200,7 @@ async function submitPayment(force) {
     reference: $("reference").value,
     remarks: $("remarks").value,
     force: force === true,
+    editId: editingId || "",
     purpose: payTarget().purpose,
     group: payTarget().group,
     payTo: payTarget().payTo,
@@ -205,6 +208,10 @@ async function submitPayment(force) {
 
   if (!payload.amount || Number(payload.amount) <= 0) {
     alert("Please enter a valid amount");
+    return;
+  }
+  if (!payload.reference.trim()) {
+    alert("Reference is mandatory (UPI / transaction ID, or a receipt note for cash)");
     return;
   }
   if (!payload.paymentDate) {
@@ -225,6 +232,7 @@ async function submitPayment(force) {
       $("reference").value = "";
       $("remarks").value = "";
       current = result.balance;
+      endEdit();
       renderSummary();
       updatePreview();
     } else if (result.status === "duplicate") {

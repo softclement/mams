@@ -228,3 +228,67 @@ async function admReset() {
     });
   };
 })();
+
+// ---------- owner corrects / withdraws a payment that is still awaiting lead confirmation ----------
+let editingId = "";
+
+function renderPending() {
+  const box = $("pendCard"), list = (current && current.pendingList) || [];
+  box.style.display = list.length ? "block" : "none";
+  if (!list.length) return;
+  box.innerHTML = '<h3>⏳ Awaiting lead confirmation</h3><p class="muted">You can correct or cancel these until the lead confirms.</p>' +
+    list.map((p) => '<div class="box">' + item("<b>" + rupee(p.amount) + "</b> · " + esc(p.date), esc(p.mode) + " · " + esc(p.reference) + " · " + esc(p.purpose !== "Maintenance" ? p.purpose : p.group || "General"), "") +
+      '<button class="mini" onclick="startEdit(\'' + p.id + '\')">✏️ Edit</button><button class="mini no" onclick="cancelPayment(\'' + p.id + '\')">✖ Cancel payment</button></div>').join("");
+}
+
+function setPayForFrom(p) {
+  const sel = $("payFor");
+  const add = (v, t) => { const o = document.createElement("option"); o.value = v; o.text = t; sel.appendChild(o); return v; };
+  if (p.purpose !== "Maintenance") {
+    const v = "S|" + p.purpose + "|" + p.payTo;
+    if (![].slice.call(sel.options).some((o) => o.value === v)) add(v, "Special – " + p.purpose);
+    sel.value = v;
+  } else if (current.group && p.group === current.group.group) {
+    sel.value = "M|" + current.group.group + "|" + current.group.payTo;
+  } else {
+    sel.value = "X||";
+    const ex = $("extraGroup"), v = p.group + "|" + p.payTo;
+    if (![].slice.call(ex.options).some((o) => o.value === v)) { const o = document.createElement("option"); o.value = v; o.text = p.group || "General"; ex.appendChild(o); }
+    ex.value = v;
+  }
+  onPayFor();
+}
+
+function startEdit(id) {
+  const p = (current.pendingList || []).filter((x) => x.id === id)[0];
+  if (!p) return;
+  editingId = id;
+  setPayForFrom(p);
+  $("paymentDate").value = p.date; $("amount").value = p.amount; $("mode").value = p.mode;
+  $("reference").value = p.reference; $("remarks").value = p.remarks;
+  $("submitBtn").textContent = "Update Payment";
+  $("editBar").style.display = "block";
+  updatePreview();
+  $("payCard").scrollIntoView();
+}
+function endEdit() {
+  editingId = "";
+  $("submitBtn").textContent = "Submit Payment";
+  $("editBar").style.display = "none";
+}
+function cancelEdit() {
+  endEdit();
+  ["amount", "reference", "remarks"].forEach((i) => ($(i).value = ""));
+  $("paymentDate").value = todayStr();
+  fillPayFor();
+  updatePreview();
+}
+async function cancelPayment(id) {
+  if (!confirm("Cancel this payment? The lead will no longer see it.")) return;
+  try {
+    const r = await post({ action: "payment_cancel", flat: me.flat, pin: me.pin, id: id });
+    if (r.status === "error") throw new Error(r.message);
+    if (editingId === id) cancelEdit();
+    current = r.balance; fillPayFor(); renderSummary(); updatePreview();
+  } catch (err) { alert("Error : " + err.message); }
+}

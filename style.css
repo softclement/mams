@@ -137,3 +137,9 @@ header { position: relative; }
 /* processing overlay */
 #busy { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; }
 #busy div { background: white; padding: 16px 24px; border-radius: 10px; font-weight: bold; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+/* flat name and pending highlight */
+.flatname { font-size: 20px; font-weight: bold; color: #0d47a1; margin-bottom: 4px; }
+#flat { font-weight: bold; color: #0d47a1; }
+.blink { background: #fff3e0; color: #e65100; font-weight: bold; padding: 2px 6px; border-radius: 4px; animation: blink 1s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ManaCadeo Apartment</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
@@ -27,6 +27,7 @@
     <div id="payGate" class="card" style="display:none"></div>
     <div id="payCard" class="card">
       <h3>Submit Payment</h3>
+      <div id="editBar" class="summary" style="display:none">✏️ Editing a payment awaiting confirmation <button type="button" class="mini alt" onclick="cancelEdit()">Cancel edit</button></div>
 
       <label>Flat</label>
       <select id="flat" onchange="loadBalance()"><option>Loading...</option></select>
@@ -53,14 +54,15 @@
         <option>Cheque</option>
       </select>
 
-      <label>Reference</label>
-      <input type="text" id="reference" placeholder="UPI / Transaction ID">
+      <label>Reference *</label>
+      <input type="text" id="reference" placeholder="UPI / Transaction ID (mandatory)">
 
       <label>Remarks</label>
       <input type="text" id="remarks" placeholder="Optional">
 
       <button id="submitBtn" type="button" onclick="submitPayment()">Submit Payment</button>
     </div>
+    <div id="pendCard" class="card" style="display:none"></div>
     <div class="card">
       <h3>System Status</h3>
       <div id="status">Ready</div>
@@ -126,7 +128,7 @@
   <button type="button" data-view="admin" onclick="show('admin')"><span>⚙️</span>Admin</button>
 </nav>
 
-<script src="app.js?v=7"></script>
-<script src="extra.js?v=7"></script>
+<script src="app.js?v=8"></script>
+<script src="extra.js?v=8"></script>
 </body>
 </html>
