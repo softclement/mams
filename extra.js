@@ -89,7 +89,7 @@ function repCtl() {
   let h = "";
   if (t === "sel") h = '<div class="box">' + flats.map((f) => '<label style="font-weight:normal;display:inline-block;width:48%"><input type="checkbox" class="selFlat" value="' + esc(f[0]) + '" style="width:auto"> ' + esc(f[0]) + " " + esc(f[1]) + "</label>").join("") + "</div>";
   if (t === "ledger") h = '<label>Flat</label><select id="repFlat">' + flats.map((f) => "<option value=\"" + esc(f[0]) + "\"" + (me && f[0] === me.flat ? " selected" : "") + ">" + esc(f[0]) + " - " + esc(f[1]) + "</option>").join("") + "</select>";
-  if (t === "coll" || t === "exp") h = inp("repMonth", "Month", "month", monthNow());
+  if (t === "coll" || t === "exp" || t === "mstat") h = inp("repMonth", "Month", "month", monthNow());
   $("repCtl").innerHTML = h;
   $("repOut").innerHTML = "";
 }
@@ -129,6 +129,13 @@ async function repShow() {
         totalsList("By group", d.byGroup) + totalsList("By mode", d.byMode) + '<div class="list-title">Payments</div>' +
         (d.rows.map((r) => item("<b>" + esc(r.flat) + "</b> " + esc(r.owner), esc(r.date) + " · " + esc(r.mode) + (r.reference ? " · " + esc(r.reference) : "") + " · " + esc(r.group || "General") + (r.payTo ? " → " + esc(r.payTo) : "") +
           (r.status !== "Verified" ? ' <span class="tag">' + esc(r.status) + "</span>" : ""), rupee(r.amount))).join("") || '<p class="muted">No payments</p>');
+    } else if (t === "mstat") {
+      const d = await call("rep_monthstatus", { month: $("repMonth").value });
+      const cnt = (s) => d.rows.filter((r) => r.status === s).length, pend = d.rows.reduce((x, r) => x + r.pending, 0);
+      h = '<div class="summary"><b>' + esc(d.month) + "</b> · <span class=\"adv\">Paid " + cnt("Paid") + "</span> · Partly " + cnt("Partial") + ' · <span class="due">Unpaid ' + cnt("Unpaid") + "</span> · Still to collect <b>" + rupee(pend) + "</b></div>" +
+        (d.rows.map((r) => item("<b>" + esc(r.flat) + "</b> " + esc(r.owner), "Demand " + rupee(r.demand) + " · covered " + rupee(r.covered),
+          '<span class="pill ' + (r.status === "Paid" ? "adv" : r.status === "Partial" ? "part" : "due") + '">' + (r.status === "Paid" ? "Paid" : r.status === "Partial" ? "Part · " + rupee(r.pending) + " due" : rupee(r.pending) + " due") + "</span>")).join("") ||
+          '<p class="muted">No demand raised for this month yet (Admin → Monthly demand raise)</p>');
     } else if (t === "summary") {
       const d = await call("rep_summary");
       h = '<div class="summary">Collected includes special collections. Cumulative = collected − spent so far.</div>' +
@@ -377,6 +384,10 @@ function dsFrom(t, d) {
     title += " - " + (d.month || "all");
     headers = ["Date", "Category", "Vendor", "Amount", "Paid by", "Group", "Remarks"];
     rows = d.rows.map((x) => [x.date, x.category, x.vendor, x.amount, x.paidBy, x.group, x.remarks]);
+  } else if (t === "mstat") {
+    title += " - " + d.month;
+    headers = ["Flat", "Owner", "Demand", "Covered", "Pending", "Status"];
+    rows = d.rows.map((x) => [x.flat, x.owner, x.demand, x.covered, x.pending, x.status]);
   } else if (t === "summary") {
     headers = ["Month", "Collected", "Spent", "Net", "Cumulative"];
     rows = d.rows.map((x) => [x.month, x.collected, x.spent, x.net, x.cumulative]);
