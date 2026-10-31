@@ -16,6 +16,7 @@ function showMe() {
   $("logoutBtn").style.display = p.length ? "inline-block" : "none";
 }
 function logoutAll() {
+  try { Object.keys(localStorage).forEach((k) => { if (k.indexOf("mams_dash_") === 0) localStorage.removeItem(k); }); } catch (e) {}
   me = null; lead = null; adm = null; saveMe();
   $("leadLogin").style.display = "block"; $("leadPin").value = ""; $("leadBody").innerHTML = ""; $("leadForm").innerHTML = "";
   show("dashboard"); route();
@@ -101,6 +102,7 @@ async function repShow() {
   const call = async (action, extra) => {
     const d = await post(Object.assign({ action: action, flat: me.flat, pin: me.pin }, extra));
     if (d.status === "error") throw new Error(d.message);
+    repLast = d;
     return d;
   };
   try {
@@ -147,14 +149,15 @@ async function repShow() {
       h = '<div class="summary">Total spent <b>' + rupee(d.total) + "</b></div>" + totalsList("By category", d.byCategory) + '<div class="list-title">Expenses</div>' +
         (d.rows.map((r) => item(esc(r.category) + (r.vendor ? " · " + esc(r.vendor) : ""), esc(r.date) + (r.group ? " · " + esc(r.group) : "") + (r.paidBy ? " · paid by " + esc(r.paidBy) : "") + (r.remarks ? " · " + esc(r.remarks) : ""), rupee(r.amount))).join("") || '<p class="muted">No expenses</p>');
     }
-    out.innerHTML = h;
+    window.repDS = dsFrom(t, repLast);
+    out.innerHTML = exportBar() + h;
   } catch (err) { out.innerHTML = "❌ " + esc(err.message); }
 }
 
 // ---------- admin ----------
 let adm = null, M = null;
 const ADM_MENU = [["flats", "Flats master"], ["groups", "Groups"], ["members", "Group members"], ["leads", "Leads"], ["opening", "Opening balance"],
-  ["rates", "Maintenance rates"], ["demand", "Monthly demand raise"], ["pin", "Reset a flat's PIN"], ["adminpin", "Change admin PIN"]];
+  ["rates", "Maintenance rates"], ["demand", "Monthly demand raise"], ["pin", "Reset a flat's PIN"], ["adminpin", "Change admin PIN"], ["export", "Export entire Google Sheet (Excel)"]];
 
 function admInit() {
   const b = $("admBody");
@@ -163,7 +166,7 @@ function admInit() {
     $("admOut").innerHTML = "";
     return;
   }
-  b.innerHTML = '<select id="admType" onchange="admOpen()"><option value="">Select…</option>' + ADM_MENU.map((m) => '<option value="' + m[0] + '">' + m[1] + "</option>").join("") + "</select>";
+  b.innerHTML = '<button type="button" class="mini no" onclick="admLogout()">Log out of Admin</button><select id="admType" onchange="admOpen()"><option value="">Select…</option>' + ADM_MENU.map((m) => '<option value="' + m[0] + '">' + m[1] + "</option>").join("") + "</select>";
 }
 function admLogin() { adm = $("admPin").value; showMe(); admInit(); }
 async function admCall(extra) {
@@ -176,6 +179,8 @@ async function admOpen() {
   if (!t) { out.innerHTML = ""; return; }
   if (t === "demand") {
     out.innerHTML = inp("dmMonth", "Month", "month", monthNow()) + '<button type="button" onclick="admDemand()">Raise demand for this month</button><div id="dmOut"></div>';
+  } else if (t === "export") {
+    out.innerHTML = '<p class="muted">Downloads every tab of the Google Sheet as one Excel (.xlsx) file. It includes PIN data, so keep the file safe.</p><button type="button" onclick="admExport()">⬇ Download full backup</button>';
   } else if (t === "adminpin") {
     out.innerHTML = inp("newAdm", "New admin PIN", "password") + '<button type="button" onclick="admChangePin()">Change admin PIN</button>';
   } else if (t === "pin") {
@@ -197,7 +202,17 @@ function admEdit(row) {
   let h = '<div class="box"><b>' + (row ? "Edit" : "Add") + "</b>";
   M.cols.forEach((c, i) => {
     const v = cur[i] == null ? "" : cur[i], id = "mf_" + i;
-    if (c.t === "group" || c.t === "lead") {
+    if (c.t === "flat") {
+      const opts = M.options.flats.map((f) => [f.flat, f.flat + " – " + f.owner]);
+      if (v && !opts.some((o) => o[0] === v)) opts.push([v, v]);
+      h += "<label>" + esc(c.n) + '</label><select id="' + id + '"><option value="">Select…</option>' +
+        opts.map((o) => '<option value="' + esc(o[0]) + '"' + (o[0] === v ? " selected" : "") + ">" + esc(o[1]) + "</option>").join("") + "</select>";
+    } else if (c.t === "groups") {
+      const picked = String(v).split(",").map((x) => x.trim());
+      h += "<label>" + esc(c.n) + '</label><div class="box">' + M.options.groups.concat(["ALL"]).map((g) =>
+        '<label style="font-weight:normal;display:inline-block;width:48%"><input type="checkbox" class="mfg_' + i + '" value="' + esc(g) + '" style="width:auto"' +
+        (picked.indexOf(g) >= 0 ? " checked" : "") + "> " + esc(g) + "</label>").join("") + "</div>";
+    } else if (c.t === "group" || c.t === "lead") {
       const opts = c.t === "group" ? M.options.groups.map((g) => [g, g])
         : M.options.leads.map((l) => [l.flat, l.flat + " – " + l.owner]).concat([["Vendor direct", "Vendor direct (agency)"]]);
       if (v && !opts.some((o) => o[0] === v)) opts.push([v, v]);
@@ -211,7 +226,8 @@ function admEdit(row) {
 }
 async function admSave(row) {
   try {
-    const values = M.cols.map((c, i) => $("mf_" + i).value);
+    const values = M.cols.map((c, i) => c.t === "groups"
+      ? [].slice.call(document.querySelectorAll(".mfg_" + i + ":checked")).map((x) => x.value).join(",") : $("mf_" + i).value);
     M = Object.assign({ type: M.type }, await admCall({ action: "master_save", sheet: M.type, row: row, values: values }));
     renderMaster();
   } catch (err) { alert("Error : " + err.message); }
@@ -239,9 +255,10 @@ async function admReset() {
   const orig = window.fetch.bind(window);
   let n = 0;
   window.fetch = function () {
-    n++;
-    setTimeout(() => { if (n > 0) ov.style.display = "flex"; }, 100);
+    const quiet = window.__quiet === true;
+    if (!quiet) { n++; setTimeout(() => { if (n > 0) ov.style.display = "flex"; }, 100); }
     return orig.apply(null, arguments).finally(() => {
+      if (quiet) return;
       n--;
       setTimeout(() => { if (n === 0) ov.style.display = "none"; }, 150);
     });
@@ -319,4 +336,80 @@ async function admChangePin() {
     await admCall({ action: "admin_change_pin", newPin: np });
     adm = np; $("newAdm").value = ""; alert("Admin PIN changed. Use the new PIN from now on.");
   } catch (err) { alert("Error : " + err.message); }
+}
+
+function admLogout() { adm = null; showMe(); admInit(); $("admOut").innerHTML = ""; }
+async function admExport() {
+  try {
+    const d = await admCall({ action: "export_all" });
+    const bin = atob(d.b64), bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    dl(d.filename, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bytes);
+  } catch (err) { alert("Error : " + err.message); }
+}
+
+// ---------- export any report: CSV / Excel / PDF ----------
+let repLast = null;
+function dl(name, mime, content) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function dsFrom(t, d) {
+  const sel = $("repType"), name = sel.options[sel.selectedIndex].text;
+  let title = name, headers = [], rows = [];
+  if (t === "dues" || t === "sel") {
+    let list = d.rows;
+    if (t === "sel") { const pk = [].slice.call(document.querySelectorAll(".selFlat:checked")).map((x) => x.value); list = list.filter((x) => pk.indexOf(x.flat) >= 0); }
+    headers = ["Flat", "Owner", "Monthly", "Opening", "Charged", "Paid", "Balance (+due / -advance)"];
+    rows = list.map((x) => [x.flat, x.owner, x.monthly, x.opening, x.demand, x.paid, x.outstanding]);
+  } else if (t === "ledger") {
+    title += " - " + d.flat + " " + d.owner;
+    headers = ["Date", "Description", "Debit", "Credit", "Balance"];
+    rows = d.entries.map((x) => [x.date, x.desc, x.debit || "", x.credit || "", x.balance]);
+  } else if (t === "coll") {
+    title += " - " + (d.month || "all");
+    headers = ["Date", "Flat", "Owner", "Amount", "Mode", "Reference", "Group", "Pay to", "Status"];
+    rows = d.rows.map((x) => [x.date, x.flat, x.owner, x.amount, x.mode, x.reference, x.group, x.payTo, x.status]);
+  } else if (t === "exp") {
+    title += " - " + (d.month || "all");
+    headers = ["Date", "Category", "Vendor", "Amount", "Paid by", "Group", "Remarks"];
+    rows = d.rows.map((x) => [x.date, x.category, x.vendor, x.amount, x.paidBy, x.group, x.remarks]);
+  } else if (t === "summary") {
+    headers = ["Month", "Collected", "Spent", "Net", "Cumulative"];
+    rows = d.rows.map((x) => [x.month, x.collected, x.spent, x.net, x.cumulative]);
+  } else if (t === "special") {
+    headers = ["Collection", "ID", "Flat", "Owner", "Share", "Paid", "Awaiting confirmation", "Due"];
+    d.rows.forEach((s) => s.flats.forEach((f) => rows.push([s.description, s.id, f.flat, f.owner, f.share, f.paid, f.pending, Math.max(0, f.share - f.paid)])));
+  } else if (t === "groups") {
+    headers = ["Group", "Flats", "Lead", "Monthly budget", "Collected", "Spent", "Balance", "Unconfirmed"];
+    rows = d.rows.map((g) => [g.group, g.flats, g.leads.join("/"), g.budget, g.collected, g.spent, g.balance, g.pending]);
+  }
+  return { title: title, headers: headers, rows: rows };
+}
+function tableHtml(ds) {
+  return "<table border='1' cellspacing='0' cellpadding='4'><tr>" + ds.headers.map((h) => "<th>" + esc(h) + "</th>").join("") + "</tr>" +
+    ds.rows.map((r) => "<tr>" + r.map((c) => "<td>" + esc(c) + "</td>").join("") + "</tr>").join("") + "</table>";
+}
+function exportBar() {
+  return '<div class="exp">⬇ Export: <button class="mini alt" onclick="exportRep(\'csv\')">CSV</button><button class="mini alt" onclick="exportRep(\'xls\')">Excel</button><button class="mini alt" onclick="exportRep(\'pdf\')">PDF</button></div>';
+}
+function exportRep(kind) {
+  const ds = window.repDS;
+  if (!ds) return;
+  const base = ds.title.replace(/[^\w\- ]+/g, "").replace(/\s+/g, "_");
+  if (kind === "csv") {
+    const q = (v) => { v = String(v == null ? "" : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    dl(base + ".csv", "text/csv;charset=utf-8", "\ufeff" + [ds.headers].concat(ds.rows).map((r) => r.map(q).join(",")).join("\r\n"));
+  } else if (kind === "xls") {
+    dl(base + ".xls", "application/vnd.ms-excel", "<html><head><meta charset='utf-8'></head><body><h3>" + esc(ds.title) + "</h3>" + tableHtml(ds) + "</body></html>");
+  } else {
+    const w = window.open("", "_blank");
+    if (!w) { alert("Please allow pop-ups to export the PDF"); return; }
+    w.document.write("<html><head><title>" + esc(ds.title) + "</title><style>body{font-family:Arial;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:4px;text-align:left}th{background:#eee}</style></head><body><h3>ManaCadeo Apartment – " +
+      esc(ds.title) + "</h3>" + tableHtml(ds) + "<p>Generated " + new Date().toLocaleString() + "</p><script>window.onload=function(){window.print()}<\/script></body></html>");
+    w.document.close();
+  }
 }

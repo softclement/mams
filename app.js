@@ -71,7 +71,7 @@ function route() {
 
 window.addEventListener("hashchange", route);
 
-const NEED_API = 9;
+const NEED_API = 10;
 
 async function checkBackend() {
   try {
@@ -90,7 +90,7 @@ window.onload = async function () {
   checkBackend();
   restoreLogin();
   $("paymentDate").value = todayStr();
-  await loadFlats();
+  loadFlats();
   route();
 };
 
@@ -110,6 +110,7 @@ async function loadFlats() {
       });
     });
     setStatus("Ready");
+    if (me) $("flat").value = me.flat;
   } catch (err) {
     console.error(err);
     selects.forEach((sel) => (sel.innerHTML = "<option>Could not load flats</option>"));
@@ -125,13 +126,8 @@ function tile(label, value, cls, sub) {
   );
 }
 
-async function loadDashboard() {
+function renderDash(d) {
   const box = $("dashTiles");
-  box.innerHTML = "Loading...";
-  try {
-    if (!me) { box.innerHTML = gate("dashboard"); $("dashMonth").textContent = ""; return; }
-    const d = await post({ action: "dashboard", flat: me.flat, pin: me.pin });
-    if (d.status === "error") throw new Error(d.message);
     $("dashMonth").textContent = "· " + d.month;
     box.innerHTML = matrixHtml(d.matrix || []) +
       '<div class="tiles">' +
@@ -143,17 +139,33 @@ async function loadDashboard() {
       tile("Net Funds*", (d.netFunds < 0 ? "-" : "") + rupee(d.netFunds), d.netFunds < 0 ? "red" : "", "received − expenses") +
       "</div>" +
       '<p class="muted">*Does not include any opening bank balance.</p>' + groupsHtml(d);
+}
+
+async function loadDashboard() {
+  const box = $("dashTiles");
+  if (!me) { box.innerHTML = gate("dashboard"); $("dashMonth").textContent = ""; return; }
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem("mams_dash_" + me.flat) || "null"); } catch (e) {}
+  if (cached) renderDash(cached); else box.innerHTML = "Loading...";
+  try {
+    window.__quiet = !!cached;   // refresh in the background without blocking the screen
+    const p = post({ action: "dashboard", flat: me.flat, pin: me.pin });
+    window.__quiet = false;
+    const d = await p;
+    if (d.status === "error") throw new Error(d.message);
+    renderDash(d);
+    try { localStorage.setItem("mams_dash_" + me.flat, JSON.stringify(d)); } catch (e) {}
   } catch (err) {
-    box.innerHTML = "❌ " + esc(err.message);
+    if (!cached) box.innerHTML = "❌ " + esc(err.message);
   }
 }
 
 // ---------- submit payment ----------
 async function loadBalance() {
-  const flat = $("flat").value;
+  const flat = me ? me.flat : "";
   current = null;
   $("preview").innerHTML = "";
-  if (!flat || flat.indexOf("Could not") === 0 || flat === "Loading...") return;
+  if (!flat) return;
   $("summary").innerHTML = "Loading balance...";
   try {
     current = await post({ action: "balance", flat: me.flat, pin: me.pin });
@@ -535,13 +547,18 @@ async function leadSave(kind, key) {
 // ---------- home: small matrix of all flats ----------
 function matrixHtml(rows) {
   const n = (v) => Math.round(v).toLocaleString("en-IN");
-  let o = 0, c = 0, p = 0, b = 0;
-  const body = rows.map((r) => {
+  const floors = { G: "Ground floor", F: "First floor", S: "Second floor", T: "Third floor" };
+  let o = 0, c = 0, p = 0, b = 0, last = "", body = "";
+  rows.forEach((r) => {
     o += r.opening; c += r.demand; p += r.paid; b += r.outstanding;
-    const cls = r.outstanding > 0 ? "due" : r.outstanding < 0 ? "adv" : "";
-    return "<tr><td><b>" + esc(r.flat) + "</b></td><td>" + n(r.opening) + "</td><td>" + n(r.demand) + "</td><td>" + n(r.paid) + '</td><td class="' + cls + '">' + n(r.outstanding) + "</td></tr>";
-  }).join("");
-  return '<div class="mtx-wrap"><table class="mtx"><thead><tr><th>Flat</th><th>Open</th><th>Charged</th><th>Paid</th><th>Balance</th></tr></thead><tbody>' + body +
+    const f = String(r.flat).charAt(0).toUpperCase();
+    if (f !== last) { last = f; body += '<tr class="fl"><td colspan="5">' + (floors[f] || f) + "</td></tr>"; }
+    const kind = r.outstanding > 0 ? "due" : r.outstanding < 0 ? "adv" : "nil";
+    const label = r.outstanding > 0 ? n(r.outstanding) : r.outstanding < 0 ? "+" + n(-r.outstanding) : "Nil";
+    body += '<tr><td><span class="fchip ' + f + '">' + esc(r.flat) + "</span></td><td>" + n(r.opening) + "</td><td>" + n(r.demand) + "</td><td>" + n(r.paid) +
+      '</td><td><span class="pill ' + kind + '">' + label + "</span></td></tr>";
+  });
+  return '<div class="mtx-card"><table class="mtx"><thead><tr><th>Flat</th><th>Open</th><th>Charged</th><th>Paid</th><th>Balance</th></tr></thead><tbody>' + body +
     "</tbody><tfoot><tr><td>Total</td><td>" + n(o) + "</td><td>" + n(c) + "</td><td>" + n(p) + "</td><td>" + n(b) + "</td></tr></tfoot></table></div>" +
-    '<p class="muted">₹ · Balance: <span class="due">red = due</span>, <span class="adv">green = advance</span></p>';
+    '<p class="muted">₹ · Balance: <span class="pill due">red</span> amount due · <span class="pill adv">green +</span> paid in advance · <span class="pill nil">Nil</span> settled</p>';
 }
