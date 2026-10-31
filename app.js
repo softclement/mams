@@ -433,6 +433,7 @@ async function leadLogin() {
   $("leadBody").innerHTML = "Loading...";
   try {
     renderLead(await leadCall({ action: "lead" }));
+    showMe();
     $("leadLogin").style.display = "none";
   } catch (err) {
     lead = null;
@@ -459,7 +460,7 @@ function renderLead(d) {
       "Budget " + rupee(g.budget) + " · collected this month " + rupee(g.collectedMonth) + " · spent " + rupee(g.spentMonth),
       (g.balance < 0 ? '<span class="neg">−' : "<span>") + rupee(g.balance) + "</span>") +
     (g.balance < 0 ? '<p class="neg">Bills exceed collection by ' + rupee(g.balance) + " – ask other flats to contribute, or you have advanced it.</p>" : "") +
-    '<button class="mini" onclick="leadForm(\'bill\',\'' + esc(g.group) + "')\">Record bill paid</button></div>").join("") || '<p class="muted">No groups</p>';
+    '<button class="mini" onclick="leadForm(\'bill\',\'' + esc(g.group) + "','" + Math.max(0, g.balance) + "')\">" + (g.balance > 0 ? "Pay vendor " + rupee(g.balance) : "Record bill paid") + "</button>" + (g.balance === 0 && g.collectedMonth ? ' <span class="adv">✔ Nil balance</span>' : "") + "</div>").join("") || '<p class="muted">No groups</p>';
 
   h += '<div class="list-title">Special collections I lead</div>';
   h += d.specials.map((s) =>
@@ -467,7 +468,7 @@ function renderLead(d) {
       esc(s.id) + " · " + rupee(s.share) + " per flat · pending: " + (s.unpaid.map((u) => u.flat).join(", ") || "none"),
       rupee(s.collected) + " / " + rupee(s.total)) +
     "<div class=\"muted\">Spent " + rupee(s.spent) + " · in hand " + rupee(s.balance) + "</div>" +
-    '<button class="mini" onclick="leadForm(\'sbill\',\'' + esc(s.id) + "')\">Record vendor payment</button></div>").join("");
+    '<button class="mini" onclick="leadForm(\'sbill\',\'' + esc(s.id) + "','" + Math.max(0, s.balance) + "')\">" + (s.balance > 0 ? "Pay vendor " + rupee(s.balance) : "Record vendor payment") + "</button>" + (s.balance === 0 && s.collected ? ' <span class="adv">✔ Nil balance</span>' : "") + "</div>").join("");
   h += '<button class="mini alt" onclick="leadForm(\'special\')">+ New special collection</button>';
   $("leadBody").innerHTML = h;
 }
@@ -477,7 +478,7 @@ async function leadConfirm(id, decision) {
   catch (err) { alert("Error : " + err.message); }
 }
 
-function leadForm(kind, key) {
+function leadForm(kind, key, amt) {
   const d = window.leadData, f = $("leadForm");
   const inp = (id, label, type, ph) => "<label>" + label + '</label><input id="lf_' + id + '" type="' + (type || "text") + '" placeholder="' + (ph || "") + '">';
   let h = '<div class="box"><b>' + (kind === "special" ? "New special collection" : "Record bill / vendor payment " + esc(key)) + "</b>";
@@ -493,6 +494,8 @@ function leadForm(kind, key) {
        '<button class="mini alt" onclick="$(\'leadForm\').innerHTML=\'\'">Cancel</button></div>';
   f.innerHTML = h;
   if ($("lf_date")) $("lf_date").value = todayStr();
+  if (amt && $("lf_amount")) $("lf_amount").value = amt;
+  if (key && $("lf_category")) { const o = [].slice.call($("lf_category").options).filter((x) => x.value === key)[0]; if (o) o.selected = true; }
   f.scrollIntoView();
 }
 
@@ -508,7 +511,8 @@ async function leadSave(kind, key) {
         action: "bill", group: kind === "bill" ? key : "", specialId: kind === "sbill" ? key : "", date: v("date"), amount: v("amount"),
         category: v("category"), vendor: v("vendor"), billPeriod: v("period"), remarks: v("remarks"),
       });
-      alert("Bill recorded");
+      const gb = (r.groups || []).filter((g) => g.group === key)[0] || (r.specials || []).filter((s) => s.id === key)[0];
+      alert("Vendor payment recorded." + (gb ? " Balance now " + (gb.balance < 0 ? "−" : "") + rupee(gb.balance) : ""));
     }
     $("leadForm").innerHTML = "";
     renderLead(r);

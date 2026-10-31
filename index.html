@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ManaCadeo Apartment</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
 <header>
   <h2>🏢 ManaCadeo Apartment</h2>
   <p>Apartment Management System</p>
-  <div id="who" class="who" onclick="show('account')">👤 Log in</div>
+  <div class="topbar"><div id="who" class="who" onclick="show('account')">👤 Log in</div><button id="logoutBtn" type="button" class="logout" onclick="logoutAll()" style="display:none">Logout</button></div>
 </header>
 
 <main>
@@ -126,7 +126,7 @@
   <button type="button" data-view="admin" onclick="show('admin')"><span>⚙️</span>Admin</button>
 </nav>
 
-<script src="app.js?v=6"></script>
-<script src="extra.js?v=6"></script>
+<script src="app.js?v=7"></script>
+<script src="extra.js?v=7"></script>
 </body>
 </html>

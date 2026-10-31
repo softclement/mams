@@ -7,7 +7,19 @@ function saveMe() {
   try { if (me) localStorage.setItem("mams_me", JSON.stringify(me)); else localStorage.removeItem("mams_me"); } catch (e) {}
   showMe();
 }
-function showMe() { $("who").innerHTML = me ? "👤 " + esc(me.flat) + " " + esc(me.owner) : "👤 Log in"; }
+function showMe() {
+  const p = [];
+  if (me) p.push("👤 " + esc(me.flat) + " " + esc(me.owner) + " · Flat login");
+  if (typeof lead !== "undefined" && lead) p.push("🤝 " + esc(lead.flat === "COMMITTEE" ? "Committee" : lead.flat) + " · Lead login");
+  if (adm) p.push("⚙️ Admin login");
+  $("who").innerHTML = p.length ? p.join("<br>") : "👤 Log in";
+  $("logoutBtn").style.display = p.length ? "inline-block" : "none";
+}
+function logoutAll() {
+  me = null; lead = null; adm = null; saveMe();
+  $("leadLogin").style.display = "block"; $("leadPin").value = ""; $("leadBody").innerHTML = ""; $("leadForm").innerHTML = "";
+  show("dashboard"); route();
+}
 function restoreLogin() { showMe(); }
 function gate(view) {
   afterLogin = view;
@@ -136,10 +148,10 @@ function admInit() {
   }
   b.innerHTML = '<select id="admType" onchange="admOpen()"><option value="">Select…</option>' + ADM_MENU.map((m) => '<option value="' + m[0] + '">' + m[1] + "</option>").join("") + "</select>";
 }
-function admLogin() { adm = $("admPin").value; admInit(); }
+function admLogin() { adm = $("admPin").value; showMe(); admInit(); }
 async function admCall(extra) {
   const d = await post(Object.assign({ adminPin: adm }, extra));
-  if (d.status === "error") { if (/PIN/.test(d.message)) { adm = null; admInit(); } throw new Error(d.message); }
+  if (d.status === "error") { if (/PIN/.test(d.message)) { adm = null; showMe(); admInit(); } throw new Error(d.message); }
   return d;
 }
 async function admOpen() {
@@ -198,3 +210,21 @@ async function admReset() {
   try { await admCall({ action: "admin_reset_pin", flat: f }); alert("PIN of " + f + " is now 123"); }
   catch (err) { alert("Error : " + err.message); }
 }
+
+// ---------- "Processing..." overlay while any request is running ----------
+(function () {
+  const ov = document.createElement("div");
+  ov.id = "busy";
+  ov.innerHTML = "<div>⏳ Processing… please wait</div>";
+  document.body.appendChild(ov);
+  const orig = window.fetch.bind(window);
+  let n = 0;
+  window.fetch = function () {
+    n++;
+    setTimeout(() => { if (n > 0) ov.style.display = "flex"; }, 100);
+    return orig.apply(null, arguments).finally(() => {
+      n--;
+      setTimeout(() => { if (n === 0) ov.style.display = "none"; }, 150);
+    });
+  };
+})();
