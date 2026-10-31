@@ -152,3 +152,17 @@ header { position: relative; }
 .mtx thead th { background: #eef3fb; color: #455a64; position: sticky; top: 0; }
 .mtx tbody tr:nth-child(even) { background: #fafbfd; }
 .mtx tfoot td { font-weight: bold; border-top: 2px solid #90a4ae; }
+
+/* mobile polish: header, masked PIN boxes, brighter bottom menu */
+header { padding: 10px 12px 12px 12px; }
+header h2 { font-size: 17px; margin: 0 0 2px 0; }
+header p { font-size: 11px; opacity: 0.9; }
+.topbar { position: static; justify-content: center; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.who { font-size: 14px; font-weight: bold; padding: 5px 12px; text-align: center; }
+.logout { font-size: 13px; padding: 5px 12px; }
+
+.pin { -webkit-text-security: disc; text-security: disc; }
+
+nav button { color: #263238; font-weight: bold; font-size: 11px; }
+nav button span { font-size: 24px; filter: saturate(1.8) brightness(1.1); }
+nav button.active { background: #1565c0; color: #fff; }

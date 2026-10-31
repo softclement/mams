@@ -10,7 +10,7 @@ function saveMe() {
 function showMe() {
   const p = [];
   if (me) p.push("👤 " + esc(me.flat) + " " + esc(me.owner) + " · Flat login");
-  if (typeof lead !== "undefined" && lead) p.push("🤝 " + esc(lead.flat === "COMMITTEE" ? "Committee" : lead.flat) + " · Lead login");
+  if (typeof lead !== "undefined" && lead) p.push("🤝 " + esc(lead.flat === "COMMITTEE" || lead.flat === "ADMIN" ? "Admin" : lead.flat) + " · Lead login");
   if (adm) p.push("⚙️ Admin login");
   $("who").innerHTML = p.length ? p.join("<br>") : "👤 Log in";
   $("logoutBtn").style.display = p.length ? "inline-block" : "none";
@@ -26,6 +26,8 @@ function gate(view) {
   return '<div class="summary">Please log in with your flat and PIN. <button class="mini" onclick="show(\'account\')">Log in</button></div>';
 }
 function inp(id, label, type, val, ph) {
+  if (type === "password")   // text box masked by CSS, so phones do not offer to save a password
+    return '<label>' + label + '</label><input id="' + id + '" type="text" class="pin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value="' + esc(val || "") + '" placeholder="' + (ph || "") + '">';
   return '<label>' + label + '</label><input id="' + id + '" type="' + (type || "text") + '" value="' + esc(val || "") + '" placeholder="' + (ph || "") + '">';
 }
 
@@ -125,6 +127,21 @@ async function repShow() {
         totalsList("By group", d.byGroup) + totalsList("By mode", d.byMode) + '<div class="list-title">Payments</div>' +
         (d.rows.map((r) => item("<b>" + esc(r.flat) + "</b> " + esc(r.owner), esc(r.date) + " · " + esc(r.mode) + (r.reference ? " · " + esc(r.reference) : "") + " · " + esc(r.group || "General") + (r.payTo ? " → " + esc(r.payTo) : "") +
           (r.status !== "Verified" ? ' <span class="tag">' + esc(r.status) + "</span>" : ""), rupee(r.amount))).join("") || '<p class="muted">No payments</p>');
+    } else if (t === "summary") {
+      const d = await call("rep_summary");
+      h = '<div class="summary">Collected includes special collections. Cumulative = collected − spent so far.</div>' +
+        (d.rows.map((r) => item("<b>" + esc(r.month) + "</b>", "Collected " + rupee(r.collected) + " · Spent " + rupee(r.spent) + " · Cumulative " + (r.cumulative < 0 ? "−" : "") + rupee(r.cumulative),
+          '<span class="' + (r.net < 0 ? "due" : "adv") + '">' + (r.net < 0 ? "−" : "+") + rupee(r.net) + "</span>")).join("") || '<p class="muted">No data yet</p>');
+    } else if (t === "special") {
+      const d = await call("rep_special");
+      h = d.rows.map((s) => '<div class="box">' + item("<b>" + esc(s.description) + "</b>", esc(s.id) + " · " + rupee(s.share) + " per flat · lead " + esc(s.lead), rupee(s.collected) + " / " + rupee(s.total)) +
+        '<div class="muted">Spent ' + rupee(s.spent) + " · in hand " + rupee(s.balance) + "</div>" +
+        s.flats.map((f) => item(esc(f.flat) + " " + esc(f.owner), f.pending ? "awaiting confirmation " + rupee(f.pending) : "",
+          f.paid >= f.share ? '<span class="adv">Paid</span>' : '<span class="due">' + rupee(Math.max(0, f.share - f.paid)) + " due</span>")).join("") + "</div>").join("") || '<p class="muted">No special collections yet</p>';
+    } else if (t === "groups") {
+      const d = await call("rep_groups");
+      h = d.rows.map((g) => item("<b>" + esc(g.group) + "</b> · " + g.flats + " flats", "Lead " + esc(g.leads.join("/")) + " · budget " + rupee(g.budget) + "/month · collected " + rupee(g.collected) +
+        " · spent " + rupee(g.spent) + (g.pending ? " · unconfirmed " + rupee(g.pending) : ""), (g.balance < 0 ? '<span class="neg">−' : "<span>") + rupee(g.balance) + "</span>")).join("");
     } else {
       const d = await call("rep_expense", { month: $("repMonth").value || "all" });
       h = '<div class="summary">Total spent <b>' + rupee(d.total) + "</b></div>" + totalsList("By category", d.byCategory) + '<div class="list-title">Expenses</div>' +
@@ -134,15 +151,15 @@ async function repShow() {
   } catch (err) { out.innerHTML = "❌ " + esc(err.message); }
 }
 
-// ---------- admin (committee PIN) ----------
+// ---------- admin ----------
 let adm = null, M = null;
 const ADM_MENU = [["flats", "Flats master"], ["groups", "Groups"], ["members", "Group members"], ["leads", "Leads"], ["opening", "Opening balance"],
-  ["rates", "Maintenance rates"], ["demand", "Monthly demand raise"], ["pin", "Reset a flat's PIN"]];
+  ["rates", "Maintenance rates"], ["demand", "Monthly demand raise"], ["pin", "Reset a flat's PIN"], ["adminpin", "Change admin PIN"]];
 
 function admInit() {
   const b = $("admBody");
   if (!adm) {
-    b.innerHTML = inp("admPin", "Committee PIN", "password") + '<button type="button" onclick="admLogin()">Open</button>';
+    b.innerHTML = inp("admPin", "Admin PIN", "password") + '<button type="button" onclick="admLogin()">Open</button>';
     $("admOut").innerHTML = "";
     return;
   }
@@ -159,6 +176,8 @@ async function admOpen() {
   if (!t) { out.innerHTML = ""; return; }
   if (t === "demand") {
     out.innerHTML = inp("dmMonth", "Month", "month", monthNow()) + '<button type="button" onclick="admDemand()">Raise demand for this month</button><div id="dmOut"></div>';
+  } else if (t === "adminpin") {
+    out.innerHTML = inp("newAdm", "New admin PIN", "password") + '<button type="button" onclick="admChangePin()">Change admin PIN</button>';
   } else if (t === "pin") {
     out.innerHTML = '<label>Flat</label><select id="pinFlat">' + (window.FLATS || []).map((f) => "<option value=\"" + esc(f[0]) + "\">" + esc(f[0]) + " - " + esc(f[1]) + "</option>").join("") +
       '</select><button type="button" onclick="admReset()">Reset PIN to 123</button>';
@@ -290,5 +309,14 @@ async function cancelPayment(id) {
     if (r.status === "error") throw new Error(r.message);
     if (editingId === id) cancelEdit();
     current = r.balance; fillPayFor(); renderSummary(); updatePreview();
+  } catch (err) { alert("Error : " + err.message); }
+}
+
+async function admChangePin() {
+  const np = $("newAdm").value.trim();
+  if (!np) { alert("Enter the new admin PIN"); return; }
+  try {
+    await admCall({ action: "admin_change_pin", newPin: np });
+    adm = np; $("newAdm").value = ""; alert("Admin PIN changed. Use the new PIN from now on.");
   } catch (err) { alert("Error : " + err.message); }
 }

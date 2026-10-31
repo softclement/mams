@@ -71,7 +71,7 @@ function route() {
 
 window.addEventListener("hashchange", route);
 
-const NEED_API = 8;
+const NEED_API = 9;
 
 async function checkBackend() {
   try {
@@ -352,12 +352,12 @@ async function loadExpenses() {
   }
 }
 
-// ---------- defaulters (committee PIN) ----------
+// ---------- defaulters (admin PIN) ----------
 async function loadDefaulters() {
   const box = $("defBody");
   const pin = $("pin").value;
   if (!pin) {
-    alert("Enter the committee PIN");
+    alert("Enter the admin PIN");
     return;
   }
   box.innerHTML = "Loading...";

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ManaCadeo Apartment</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -80,6 +80,9 @@
           <option value="ledger">Flat ledger</option>
           <option value="coll">Monthly collection ledger</option>
           <option value="exp">Monthly expense ledger</option>
+          <option value="summary">Month-wise income vs expense</option>
+          <option value="special">Special collections status</option>
+          <option value="groups">Group fund status</option>
         </select>
         <div id="repCtl"></div>
         <button type="button" onclick="repShow()">Show</button>
@@ -93,9 +96,9 @@
       <h3>Collection Lead</h3>
       <div id="leadLogin">
         <label>Your flat</label>
-        <input type="text" id="leadFlat" placeholder="e.g. G1 (or COMMITTEE)" autocapitalize="characters">
+        <input type="text" id="leadFlat" placeholder="e.g. G1 (or ADMIN)" autocapitalize="characters" autocomplete="off">
         <label>PIN</label>
-        <input type="password" id="leadPin" placeholder="Lead PIN" autocomplete="off">
+        <input type="text" id="leadPin" class="pin" placeholder="Lead PIN" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
         <button type="button" onclick="leadLogin()">Open</button>
       </div>
       <div id="leadBody"></div>
@@ -105,7 +108,7 @@
 
   <section id="view-admin" class="view">
     <div class="card">
-      <h3>Admin (Committee)</h3>
+      <h3>Admin</h3>
       <div id="admBody"></div>
       <div id="admOut"></div>
     </div>
@@ -128,7 +131,7 @@
   <button type="button" data-view="admin" onclick="show('admin')"><span>⚙️</span>Admin</button>
 </nav>
 
-<script src="app.js?v=9"></script>
-<script src="extra.js?v=9"></script>
+<script src="app.js?v=10"></script>
+<script src="extra.js?v=10"></script>
 </body>
 </html>
