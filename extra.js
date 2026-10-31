@@ -16,7 +16,7 @@ function showMe() {
   $("logoutBtn").style.display = p.length ? "inline-block" : "none";
 }
 function logoutAll() {
-  try { Object.keys(localStorage).forEach((k) => { if (k.indexOf("mams_dash_") === 0) localStorage.removeItem(k); }); } catch (e) {}
+  try { Object.keys(localStorage).forEach((k) => { if (k.indexOf("mams_dash_") === 0 || k.indexOf("mams_bal_") === 0) localStorage.removeItem(k); }); } catch (e) {}
   me = null; lead = null; adm = null; saveMe();
   $("leadLogin").style.display = "block"; $("leadPin").value = ""; $("leadBody").innerHTML = ""; $("leadForm").innerHTML = "";
   show("dashboard"); route();

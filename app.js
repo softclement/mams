@@ -71,7 +71,7 @@ function route() {
 
 window.addEventListener("hashchange", route);
 
-const NEED_API = 11;
+const NEED_API = 12;
 
 async function checkBackend() {
   try {
@@ -161,21 +161,34 @@ async function loadDashboard() {
 }
 
 // ---------- submit payment ----------
+function applyBalance(b) {
+  const keep = $("payFor").value;
+  current = b;
+  fillPayFor();
+  if ([].slice.call($("payFor").options).some((o) => o.value === keep)) { $("payFor").value = keep; onPayFor(); }
+  renderSummary();
+  updatePreview();
+}
+
 async function loadBalance() {
   const flat = me ? me.flat : "";
   current = null;
   $("preview").innerHTML = "";
   if (!flat) return;
-  $("summary").innerHTML = "Loading balance...";
+  let cached = null;   // show the last balance at once, refresh quietly behind it
+  try { cached = JSON.parse(localStorage.getItem("mams_bal_" + flat) || "null"); } catch (e) {}
+  if (cached) applyBalance(cached); else $("summary").innerHTML = "Loading balance...";
   try {
-    current = await post({ action: "balance", flat: me.flat, pin: me.pin });
-    if (current.status === "error") throw new Error(current.message);
-    fillPayFor();
-    renderSummary();
-    updatePreview();
+    window.__quiet = !!cached;
+    const p = post({ action: "balance", flat: me.flat, pin: me.pin });
+    window.__quiet = false;
+    const b = await p;
+    if (b.status === "error") throw new Error(b.message);
+    applyBalance(b);
+    try { localStorage.setItem("mams_bal_" + flat, JSON.stringify(b)); } catch (e) {}
   } catch (err) {
     console.error(err);
-    $("summary").innerHTML = "❌ Could not load balance: " + esc(err.message);
+    if (!cached) $("summary").innerHTML = "❌ Could not load balance: " + esc(err.message);
   }
 }
 
@@ -247,6 +260,7 @@ async function submitPayment(force) {
       $("reference").value = "";
       $("remarks").value = "";
       current = result.balance;
+      try { localStorage.setItem("mams_bal_" + me.flat, JSON.stringify(current)); } catch (e) {}
       endEdit();
       renderSummary();
       updatePreview();
