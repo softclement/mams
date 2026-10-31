@@ -143,3 +143,12 @@ header { position: relative; }
 #flat { font-weight: bold; color: #0d47a1; }
 .blink { background: #fff3e0; color: #e65100; font-weight: bold; padding: 2px 6px; border-radius: 4px; animation: blink 1s ease-in-out infinite; }
 @keyframes blink { 50% { opacity: 0.3; } }
+
+/* all-flats matrix on Home */
+.mtx-wrap { overflow-x: auto; }
+.mtx { width: 100%; border-collapse: collapse; font-size: 12px; }
+.mtx th, .mtx td { padding: 3px 6px; text-align: right; border-bottom: 1px solid #eee; white-space: nowrap; }
+.mtx th:first-child, .mtx td:first-child { text-align: left; }
+.mtx thead th { background: #eef3fb; color: #455a64; position: sticky; top: 0; }
+.mtx tbody tr:nth-child(even) { background: #fafbfd; }
+.mtx tfoot td { font-weight: bold; border-top: 2px solid #90a4ae; }

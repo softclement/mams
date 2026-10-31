@@ -71,7 +71,7 @@ function route() {
 
 window.addEventListener("hashchange", route);
 
-const NEED_API = 7;
+const NEED_API = 8;
 
 async function checkBackend() {
   try {
@@ -129,9 +129,11 @@ async function loadDashboard() {
   const box = $("dashTiles");
   box.innerHTML = "Loading...";
   try {
-    const d = await api({ action: "dashboard" });
+    if (!me) { box.innerHTML = gate("dashboard"); $("dashMonth").textContent = ""; return; }
+    const d = await post({ action: "dashboard", flat: me.flat, pin: me.pin });
+    if (d.status === "error") throw new Error(d.message);
     $("dashMonth").textContent = "· " + d.month;
-    box.innerHTML =
+    box.innerHTML = matrixHtml(d.matrix || []) +
       '<div class="tiles">' +
       tile("Total Collection Due", rupee(d.demand), "", "all months raised") +
       tile("Total Received", rupee(d.received), "green", rupee(d.receivedThisMonth) + " this month") +
@@ -154,7 +156,8 @@ async function loadBalance() {
   if (!flat || flat.indexOf("Could not") === 0 || flat === "Loading...") return;
   $("summary").innerHTML = "Loading balance...";
   try {
-    current = await api({ action: "balance", flat: flat });
+    current = await post({ action: "balance", flat: me.flat, pin: me.pin });
+    if (current.status === "error") throw new Error(current.message);
     fillPayFor();
     renderSummary();
     updatePreview();
@@ -527,4 +530,18 @@ async function leadSave(kind, key) {
   } catch (err) {
     alert("Error : " + err.message);
   }
+}
+
+// ---------- home: small matrix of all flats ----------
+function matrixHtml(rows) {
+  const n = (v) => Math.round(v).toLocaleString("en-IN");
+  let o = 0, c = 0, p = 0, b = 0;
+  const body = rows.map((r) => {
+    o += r.opening; c += r.demand; p += r.paid; b += r.outstanding;
+    const cls = r.outstanding > 0 ? "due" : r.outstanding < 0 ? "adv" : "";
+    return "<tr><td><b>" + esc(r.flat) + "</b></td><td>" + n(r.opening) + "</td><td>" + n(r.demand) + "</td><td>" + n(r.paid) + '</td><td class="' + cls + '">' + n(r.outstanding) + "</td></tr>";
+  }).join("");
+  return '<div class="mtx-wrap"><table class="mtx"><thead><tr><th>Flat</th><th>Open</th><th>Charged</th><th>Paid</th><th>Balance</th></tr></thead><tbody>' + body +
+    "</tbody><tfoot><tr><td>Total</td><td>" + n(o) + "</td><td>" + n(c) + "</td><td>" + n(p) + "</td><td>" + n(b) + "</td></tr></tfoot></table></div>" +
+    '<p class="muted">₹ · Balance: <span class="due">red = due</span>, <span class="adv">green = advance</span></p>';
 }
